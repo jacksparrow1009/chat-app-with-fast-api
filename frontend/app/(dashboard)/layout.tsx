@@ -14,6 +14,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div className="p-4 flex items-center justify-between">
                     <h2 className="text-xl font-bold tracking-tight">ChatIx</h2>
                     <Button variant="ghost" size="icon">
+                        
                         <Plus className="h-5 w-5" />
                     </Button>
                 </div>
