@@ -57,14 +57,19 @@ pip install -r requirements.txt
 alembic upgrade head
 python -m uvicorn main:app --reload
 
+```
+
 ### 1. Frontend Setup
 
+```bash
 cd frontend
 npm install
 npm run dev
 
+```
 
-📈 Roadmap & Future Enhancements
+
+### 📈 Roadmap & Future Enhancements
 
 [ ] AI Integration: Implementing FastAPI-based LLM agents for automated chat assistance.
 
