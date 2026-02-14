@@ -71,10 +71,7 @@ npm run dev
 
 ### 📈 Roadmap & Future Enhancements
 
-[ ] AI Integration: Implementing FastAPI-based LLM agents for automated chat assistance.
-
-[ ] JWT Authentication: Full secure session management.
-
-[ ] File Sharing: Support for image and document uploads via S3.
-
-[ ] Dockerization: Containerizing the stack for production-ready deployment.
+- AI Integration: Implementing FastAPI-based LLM agents for automated chat assistance.
+- JWT Authentication: Full secure session management.
+- File Sharing: Support for image and document uploads via S3.
+- Dockerization: Containerizing the stack for production-ready deployment.
