@@ -5,18 +5,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { authSchema, AuthFormValues } from "../../login/components/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
-import { 
-  Field, 
-  FieldLabel, 
-  FieldError 
+import {
+  Field,
+  FieldLabel,
+  FieldError
 } from "@/components/ui/field";
 import Link from "next/link";
 import { useState } from "react";
@@ -34,6 +34,7 @@ export default function Signup() {
       username: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
@@ -41,13 +42,13 @@ export default function Signup() {
     setServerError(null);
     try {
       console.log("Submitting to FastAPI:", values);
-      
+
       // Future: const response = await fetch('http://localhost:8000/auth/register', { ... })
-      
+
       // For now, simulating a successful delay
       await new Promise((resolve) => setTimeout(resolve, 1500));
       alert("Registration successful! You can now log in.");
-      
+
     } catch (err) {
       setServerError("Something went wrong. Please try again.");
     }
@@ -62,7 +63,7 @@ export default function Signup() {
             Enter your details below to join the chat
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent>
           {serverError && (
             <div className="mb-4 p-3 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md">
@@ -71,7 +72,6 @@ export default function Signup() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Username Field */}
             <Field>
               <FieldLabel className="font-semibold">Username</FieldLabel>
               <Input
@@ -82,7 +82,6 @@ export default function Signup() {
               {errors.username && <FieldError>{errors.username.message}</FieldError>}
             </Field>
 
-            {/* Email Field */}
             <Field>
               <FieldLabel className="font-semibold">Email Address</FieldLabel>
               <Input
@@ -94,7 +93,6 @@ export default function Signup() {
               {errors.email && <FieldError>{errors.email.message}</FieldError>}
             </Field>
 
-            {/* Password Field */}
             <Field>
               <FieldLabel className="font-semibold">Password</FieldLabel>
               <Input
@@ -105,9 +103,19 @@ export default function Signup() {
               />
               {errors.password && <FieldError>{errors.password.message}</FieldError>}
             </Field>
+            <Field>
+              <FieldLabel className="font-semibold">Confirm Password</FieldLabel>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                {...register("confirmPassword")}
+                className={errors.confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
+              />
+              {errors.confirmPassword && <FieldError>{errors.confirmPassword.message}</FieldError>}
+            </Field>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-green-600 hover:bg-green-700 h-11 text-lg font-medium transition-colors"
               disabled={isSubmitting}
             >

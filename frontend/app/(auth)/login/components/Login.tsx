@@ -21,7 +21,6 @@ export default function Login() {
 
     const onSubmit = async (values: AuthFormValues) => {
         console.log("Form Values:", values);
-        // Next Step: FastAPI Fetch call
     };
 
     return (
@@ -34,7 +33,6 @@ export default function Login() {
                 <CardContent>
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-                        {/* Email Field */}
                         <Field>
                             <FieldLabel>Email</FieldLabel>
                             <Input
@@ -46,7 +44,6 @@ export default function Login() {
                             {errors.email && <FieldError>{errors.email.message}</FieldError>}
                         </Field>
 
-                        {/* Password Field */}
                         <Field>
                             <FieldLabel>Password</FieldLabel>
                             <Input
