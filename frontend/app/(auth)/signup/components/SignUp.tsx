@@ -49,8 +49,8 @@ export default function Signup() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       alert("Registration successful! You can now log in.");
 
-    } catch (err) {
-      setServerError("Something went wrong. Please try again.");
+    } catch (error) {
+      setServerError("Something went wrong. Please try again." + (error instanceof Error ? error.message : ""));
     }
   };
 

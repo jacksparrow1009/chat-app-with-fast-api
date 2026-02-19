@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Hash, User } from "lucide-react";
@@ -15,7 +15,7 @@ export default function DynamicChatPage() {
   const displayName = chatId.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
   const isChannel = !["asad", "john-doe", "ai-assistant"].includes(chatId);
 
-  const [messages, setMessages] = useState([
+  const [messages] = useState([
     { id: 1, content: `Welcome to the ${displayName} chat!`, sender: "System", timestamp: "Now", isMe: false }
   ]);
   const [input, setInput] = useState("");
