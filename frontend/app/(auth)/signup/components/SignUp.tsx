@@ -11,13 +11,9 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle
+  CardTitle,
 } from "@/components/ui/card";
-import {
-  Field,
-  FieldLabel,
-  FieldError
-} from "@/components/ui/field";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -41,16 +37,18 @@ export default function Signup() {
   const onSubmit = async (values: AuthFormValues) => {
     setServerError(null);
     try {
-      console.log("Submitting to FastAPI:", values);
+      return values; // Future: return await fetch('http://localhost:8000/auth/register', { ... })
 
       // Future: const response = await fetch('http://localhost:8000/auth/register', { ... })
 
       // For now, simulating a successful delay
       await new Promise((resolve) => setTimeout(resolve, 1500));
       alert("Registration successful! You can now log in.");
-
     } catch (error) {
-      setServerError("Something went wrong. Please try again." + (error instanceof Error ? error.message : ""));
+      setServerError(
+        "Something went wrong. Please try again." +
+          (error instanceof Error ? error.message : ""),
+      );
     }
   };
 
@@ -58,7 +56,9 @@ export default function Signup() {
     <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 px-4 py-12">
       <Card className="w-full max-w-md shadow-xl border-t-4 border-t-green-600">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold tracking-tight">Create an account</CardTitle>
+          <CardTitle className="text-3xl font-bold tracking-tight">
+            Create an account
+          </CardTitle>
           <CardDescription>
             Enter your details below to join the chat
           </CardDescription>
@@ -77,9 +77,15 @@ export default function Signup() {
               <Input
                 placeholder="asad_developer"
                 {...register("username")}
-                className={errors.username ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={
+                  errors.username
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
               />
-              {errors.username && <FieldError>{errors.username.message}</FieldError>}
+              {errors.username && (
+                <FieldError>{errors.username.message}</FieldError>
+              )}
             </Field>
 
             <Field>
@@ -88,7 +94,11 @@ export default function Signup() {
                 type="email"
                 placeholder="name@example.com"
                 {...register("email")}
-                className={errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={
+                  errors.email
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
               />
               {errors.email && <FieldError>{errors.email.message}</FieldError>}
             </Field>
@@ -99,19 +109,33 @@ export default function Signup() {
                 type="password"
                 placeholder="••••••••"
                 {...register("password")}
-                className={errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={
+                  errors.password
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
               />
-              {errors.password && <FieldError>{errors.password.message}</FieldError>}
+              {errors.password && (
+                <FieldError>{errors.password.message}</FieldError>
+              )}
             </Field>
             <Field>
-              <FieldLabel className="font-semibold">Confirm Password</FieldLabel>
+              <FieldLabel className="font-semibold">
+                Confirm Password
+              </FieldLabel>
               <Input
                 type="password"
                 placeholder="••••••••"
                 {...register("confirmPassword")}
-                className={errors.confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={
+                  errors.confirmPassword
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
               />
-              {errors.confirmPassword && <FieldError>{errors.confirmPassword.message}</FieldError>}
+              {errors.confirmPassword && (
+                <FieldError>{errors.confirmPassword.message}</FieldError>
+              )}
             </Field>
 
             <Button
@@ -127,14 +151,23 @@ export default function Signup() {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 hover:underline font-semibold">
+            <Link
+              href="/login"
+              className="text-blue-600 hover:underline font-semibold"
+            >
               Log in
             </Link>
           </div>
           <p className="px-8 text-center text-xs text-muted-foreground leading-relaxed">
             By clicking Sign Up, you agree to our{" "}
-            <span className="underline underline-offset-4 hover:text-primary cursor-pointer">Terms of Service</span> and{" "}
-            <span className="underline underline-offset-4 hover:text-primary cursor-pointer">Privacy Policy</span>.
+            <span className="underline underline-offset-4 hover:text-primary cursor-pointer">
+              Terms of Service
+            </span>{" "}
+            and{" "}
+            <span className="underline underline-offset-4 hover:text-primary cursor-pointer">
+              Privacy Policy
+            </span>
+            .
           </p>
         </CardFooter>
       </Card>

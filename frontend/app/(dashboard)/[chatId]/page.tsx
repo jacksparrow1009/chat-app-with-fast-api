@@ -10,13 +10,22 @@ import { MessageBubble } from "../components/MessageBubble";
 export default function DynamicChatPage() {
   const params = useParams();
   const chatId = params.chatId as string; // This will be "general", "asad", etc.
-  
+
   // Format the display name (e.g., "ai-assistant" -> "AI Assistant")
-  const displayName = chatId.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+  const displayName = chatId
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
   const isChannel = !["asad", "john-doe", "ai-assistant"].includes(chatId);
 
   const [messages] = useState([
-    { id: 1, content: `Welcome to the ${displayName} chat!`, sender: "System", timestamp: "Now", isMe: false }
+    {
+      id: 1,
+      content: `Welcome to the ${displayName} chat!`,
+      sender: "System",
+      timestamp: "Now",
+      isMe: false,
+    },
   ]);
   const [input, setInput] = useState("");
 
@@ -25,7 +34,11 @@ export default function DynamicChatPage() {
       {/* Dynamic Header */}
       <header className="h-16 border-b flex items-center px-6 justify-between bg-background/95 backdrop-blur">
         <div className="flex items-center gap-2">
-          {isChannel ? <Hash className="h-5 w-5 text-muted-foreground" /> : <User className="h-5 w-5 text-muted-foreground" />}
+          {isChannel ? (
+            <Hash className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <User className="h-5 w-5 text-muted-foreground" />
+          )}
           <div>
             <h3 className="font-semibold text-lg">{displayName}</h3>
             <p className="text-xs text-muted-foreground">
@@ -45,8 +58,8 @@ export default function DynamicChatPage() {
       {/* Input Bar */}
       <footer className="p-4 bg-background border-t">
         <div className="max-w-4xl mx-auto flex gap-2">
-          <Input 
-            placeholder={`Message ${isChannel ? '#' : ''}${displayName}`}
+          <Input
+            placeholder={`Message ${isChannel ? "#" : ""}${displayName}`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             className="bg-muted/50"
