@@ -15,10 +15,12 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function Signup() {
   const [serverError, setServerError] = useState<string | null>(null);
+  const router = useRouter();
 
   const {
     register,
@@ -37,17 +39,28 @@ export default function Signup() {
   const onSubmit = async (values: AuthFormValues) => {
     setServerError(null);
     try {
-      return values; // Future: return await fetch('http://localhost:8000/auth/register', { ... })
+      const response = await fetch("http://localhost:8000/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: values.username,
+          email: values.email,
+          password: values.password,
+        }),
+      });
 
-      // Future: const response = await fetch('http://localhost:8000/auth/register', { ... })
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Registration failed");
+      }
 
-      // For now, simulating a successful delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      alert("Registration successful! You can now log in.");
+      // Registration successful — redirect to login
+      router.push("/login");
     } catch (error) {
       setServerError(
-        "Something went wrong. Please try again." +
-          (error instanceof Error ? error.message : ""),
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
       );
     }
   };

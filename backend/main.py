@@ -4,9 +4,9 @@ from db.models.user import User
 from db.database import get_db
 from db.models.message import Message as MessageModel
 from sqlalchemy.orm import Session
-from utils.auth_utils import hash_password
+from utils.auth_utils import hash_password, verify_password, create_access_token
 from db.database import get_db, engine
-from db.schemas import UserCreate
+from db.schemas import UserCreate, UserLogin
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import models  # This triggers the imports in models/__init__.py
@@ -79,3 +79,22 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return {"message": "User created successfully", "user_id": new_user.id}
+
+@app.post("/auth/login")
+def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    # 1. Find user by email
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if not db_user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # 2. Verify password
+    if not verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # 3. Create JWT token
+    access_token = create_access_token(data={"sub": db_user.email, "username": db_user.username})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "username": db_user.username,
+    }

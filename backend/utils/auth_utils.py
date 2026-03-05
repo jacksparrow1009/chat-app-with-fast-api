@@ -22,12 +22,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 pwd_context = CryptContext(
     schemes=["bcrypt"], 
     deprecated="auto",
-    bcrypt__handle_long_passwords=True # This tells passlib not to worry about the 72-char limit check
+    bcrypt__ident="2b" 
 )
 
 def hash_password(password: str):
     # Truncate manually to 72 to satisfy the underlying C library
     return pwd_context.hash(password[:72])
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password[:72], hashed_password)
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password[:72], hashed_password)

@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { authSchema, AuthFormValues } from "./types";
+import { loginSchema, LoginFormValues } from "./types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,19 +15,51 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function Login() {
+  const [serverError, setServerError] = useState<string | null>(null);
+  const router = useRouter();
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<AuthFormValues>({
-    resolver: zodResolver(authSchema),
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  const onSubmit = async (values: AuthFormValues) => {
-    return values; // Future: return await fetch('http://localhost:8000/auth/login', { ... })
+  const onSubmit = async (values: LoginFormValues) => {
+    setServerError(null);
+    try {
+      const response = await fetch("http://localhost:8000/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Login failed");
+      }
+
+      const data = await response.json();
+      // Store token and username for the chat session
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("username", data.username);
+      router.push("/");
+    } catch (error) {
+      setServerError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
+      );
+    }
   };
 
   return (
@@ -38,6 +70,11 @@ export default function Login() {
           <CardDescription>Login to your chat account</CardDescription>
         </CardHeader>
         <CardContent>
+          {serverError && (
+            <div className="mb-4 p-3 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md">
+              {serverError}
+            </div>
+          )}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <Field>
               <FieldLabel>Email</FieldLabel>
