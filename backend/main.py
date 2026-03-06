@@ -20,7 +20,7 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 
-@app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {"status": "ok"}
 
@@ -55,7 +55,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-@app.websocket("/ws/{username}")
+@app.websocket("/api/ws/{username}")
 async def websocket_endpoint(websocket: WebSocket, username: str):
     await manager.connect(websocket)
     try:
@@ -74,7 +74,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
         manager.disconnect(websocket)
         await manager.broadcast(f"System: {username} has left the chat")
 
-@app.post("/auth/register", status_code=status.HTTP_201_CREATED)
+@app.post("/api/auth/register", status_code=status.HTTP_201_CREATED)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     # 1. Check if user already exists
     db_user = db.query(User).filter(User.email == user.email).first()
@@ -92,7 +92,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return {"message": "User created successfully", "user_id": new_user.id}
 
-@app.post("/auth/login")
+@app.post("/api/auth/login")
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
     # 1. Find user by email
     db_user = db.query(User).filter(User.email == user.email).first()
