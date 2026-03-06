@@ -39,15 +39,18 @@ export default function Signup() {
   const onSubmit = async (values: AuthFormValues) => {
     setServerError(null);
     try {
-      const response = await fetch("http://localhost:8000/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: values.username,
-          email: values.email,
-          password: values.password,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "/api"}/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: values.username,
+            email: values.email,
+            password: values.password,
+          }),
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
