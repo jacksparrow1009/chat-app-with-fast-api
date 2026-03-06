@@ -1,5 +1,10 @@
 import Signup from "./components/SignUp";
+import GuestGuard from "@/components/guards/GuestGuard";
 
 export default function SignupPage() {
-  return <Signup />;
+  return (
+    <GuestGuard>
+      <Signup />
+    </GuestGuard>
+  );
 }
