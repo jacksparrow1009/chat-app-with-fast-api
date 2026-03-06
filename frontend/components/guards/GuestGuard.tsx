@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const emptySubscribe = () => () => {};
 
 export default function GuestGuard({
   children,
@@ -11,10 +9,9 @@ export default function GuestGuard({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const isGuest = useSyncExternalStore(
-    emptySubscribe,
-    () => !localStorage.getItem("access_token"),
-    () => true,
+  const [isGuest] = useState(
+    () =>
+      typeof window !== "undefined" && !localStorage.getItem("access_token"),
   );
 
   useEffect(() => {
