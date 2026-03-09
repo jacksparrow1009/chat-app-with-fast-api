@@ -1,16 +1,17 @@
 import sys
 import os
+import json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, Query
 from typing import List
 from db.models.user import User
 from db.database import get_db
 from db.models.message import Message as MessageModel
 from sqlalchemy.orm import Session
-from utils.auth_utils import hash_password, verify_password, create_access_token
+from utils.auth_utils import hash_password, verify_password, create_access_token, verify_token, get_current_user
 from db.database import get_db, engine
-from db.schemas import UserCreate, UserLogin
+from db.schemas import UserCreate, UserLogin, UserResponse, MessageResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import models  # This triggers the imports in models/__init__.py
@@ -38,7 +39,6 @@ app.add_middleware(
 
 class ConnectionManager:
     def __init__(self):
-        # List to store active websocket connections
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
@@ -49,39 +49,88 @@ class ConnectionManager:
         self.active_connections.remove(websocket)
 
     async def broadcast(self, message: str):
-        # Send message to all connected users
         for connection in self.active_connections:
             await connection.send_text(message)
 
 manager = ConnectionManager()
 
-@app.websocket("/api/ws/{username}")
-async def websocket_endpoint(websocket: WebSocket, username: str):
+@app.websocket("/api/ws")
+async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
+    # Verify JWT before accepting connection
+    try:
+        payload = verify_token(token)
+        username = payload.get("username")
+        if not username:
+            await websocket.close(code=4001)
+            return
+    except Exception:
+        await websocket.close(code=4001)
+        return
+
     await manager.connect(websocket)
     try:
         # Notify everyone that a new user joined
-        await manager.broadcast(f"System: {username} has joined the chat")
+        await manager.broadcast(json.dumps({
+            "type": "system",
+            "content": f"{username} has joined the chat",
+        }))
         while True:
-            # Wait for messages from the client
             data = await websocket.receive_text()
-            db_message = MessageModel(sender=username, content=data)
+            # Save to database
             db = next(get_db())
+            db_message = MessageModel(sender=username, content=data)
             db.add(db_message)
             db.commit()
-            # Broadcast the message to everyone
-            await manager.broadcast(f"{username}: {data}")
+            db.refresh(db_message)
+            # Broadcast as JSON
+            await manager.broadcast(json.dumps({
+                "type": "message",
+                "id": db_message.id,
+                "sender": username,
+                "content": data,
+                "timestamp": db_message.timestamp.isoformat(),
+            }))
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        await manager.broadcast(f"System: {username} has left the chat")
+        await manager.broadcast(json.dumps({
+            "type": "system",
+            "content": f"{username} has left the chat",
+        }))
+
+# --- Message Endpoints ---
+
+@app.get("/api/messages", response_model=List[MessageResponse])
+def get_messages(
+    limit: int = Query(50, ge=1, le=200),
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    messages = (
+        db.query(MessageModel)
+        .order_by(MessageModel.timestamp.asc())
+        .limit(limit)
+        .all()
+    )
+    return messages
+
+# --- User Endpoints ---
+
+@app.get("/api/users", response_model=List[UserResponse])
+def get_users(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    users = db.query(User).filter(User.is_active == True).all()
+    return users
+
+# --- Auth Endpoints ---
 
 @app.post("/api/auth/register", status_code=status.HTTP_201_CREATED)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    # 1. Check if user already exists
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # 2. Hash the password and save
     new_user = User(
         username=user.username,
         email=user.email,
@@ -94,16 +143,13 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/api/auth/login")
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
-    # 1. Find user by email
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    # 2. Verify password
     if not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    # 3. Create JWT token
     access_token = create_access_token(data={"sub": db_user.email, "username": db_user.username})
     return {
         "access_token": access_token,
