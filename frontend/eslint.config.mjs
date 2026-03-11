@@ -50,6 +50,9 @@ const eslintConfig = defineConfig([
           endOfLine: "auto",
         },
       ],
+
+      // Allow setState in effects
+      "react-hooks/set-state-in-effect": "off",
     },
   },
   // Override default ignores of eslint-config-next.
