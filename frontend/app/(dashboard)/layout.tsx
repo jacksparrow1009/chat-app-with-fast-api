@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LogOut, MessageCircle } from "lucide-react";
+import { LogOut, Menu, MessageCircle, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ interface UserInfo {
   email: string;
 }
 
-function Sidebar() {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { onlineUsers } = useChatContext();
@@ -59,7 +59,7 @@ function Sidebar() {
   const otherUsers = users.filter((u) => u.username !== currentUsername);
 
   return (
-    <aside className="w-64 border-r bg-muted/30 flex flex-col hidden md:flex">
+    <>
       <div className="p-4 flex items-center justify-between">
         <h2 className="text-xl font-bold tracking-tight">Chatify</h2>
         <MessageCircle className="h-5 w-5 text-blue-600" />
@@ -74,7 +74,11 @@ function Sidebar() {
             const isOnline = onlineUsers.includes(user.username);
             const isSelected = pathname === `/${user.username}`;
             return (
-              <Link key={user.id} href={`/${user.username}`}>
+              <Link
+                key={user.id}
+                href={`/${user.username}`}
+                onClick={onNavigate}
+              >
                 <Button
                   variant={isSelected ? "secondary" : "ghost"}
                   className={cn(
@@ -136,7 +140,48 @@ function Sidebar() {
           </Button>
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+function MobileSidebar() {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Auto-close when route changes
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-background border shadow-sm"
+        aria-label="Open sidebar"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {open && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={() => setOpen(false)}
+          />
+          <aside className="relative w-72 max-w-[80vw] bg-background border-r flex flex-col animate-in slide-in-from-left duration-200">
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-4 right-4 p-1 rounded-md hover:bg-muted"
+              aria-label="Close sidebar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <SidebarContent onNavigate={() => setOpen(false)} />
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -145,7 +190,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <AuthGuard>
       <ChatProvider>
         <div className="flex h-screen w-full bg-background overflow-hidden">
-          <Sidebar />
+          <aside className="w-64 border-r bg-muted/30 flex-col hidden md:flex">
+            <SidebarContent />
+          </aside>
+          <MobileSidebar />
           <main className="flex-1 flex flex-col min-w-0 bg-background relative">
             {children}
           </main>
