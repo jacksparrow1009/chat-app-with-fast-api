@@ -44,11 +44,9 @@ export function MessageBubble({
           isMe ? "items-end" : "items-start",
         )}
       >
-        {!isMe && (
-          <span className="text-xs text-muted-foreground mb-1 ml-1">
-            {sender}
-          </span>
-        )}
+        <span className="text-xs text-muted-foreground mb-1 ml-1 font-medium">
+          {isMe ? "You" : sender}
+        </span>
 
         <div
           className={cn(
