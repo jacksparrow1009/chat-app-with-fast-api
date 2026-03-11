@@ -4,11 +4,12 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, Query
-from typing import List
+from typing import Dict, List
 from db.models.user import User
 from db.database import get_db
 from db.models.message import Message as MessageModel
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 from utils.auth_utils import hash_password, verify_password, create_access_token, verify_token, get_current_user
 from db.database import get_db, engine
 from db.schemas import UserCreate, UserLogin, UserResponse, MessageResponse
@@ -18,6 +19,16 @@ from db import models  # This triggers the imports in models/__init__.py
 
 # Now SQLAlchemy "sees" User and Message
 models.Base.metadata.create_all(bind=engine)
+
+# Add 'receiver' column if it doesn't exist (lightweight migration)
+from sqlalchemy import text, inspect
+with engine.connect() as conn:
+    inspector = inspect(engine)
+    columns = [c["name"] for c in inspector.get_columns("messages")]
+    if "receiver" not in columns:
+        conn.execute(text("ALTER TABLE messages ADD COLUMN receiver VARCHAR"))
+        conn.commit()
+
 app = FastAPI()
 
 
@@ -39,18 +50,43 @@ app.add_middleware(
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        self.active_connections: Dict[str, WebSocket] = {}  # username -> websocket
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, username: str):
         await websocket.accept()
-        self.active_connections.append(websocket)
+        self.active_connections[username] = websocket
+        await self.broadcast_online_users()
 
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+    async def disconnect(self, username: str, websocket: WebSocket):
+        # Only remove if the stored connection is the same object
+        if self.active_connections.get(username) is websocket:
+            self.active_connections.pop(username, None)
+            await self.broadcast_online_users()
+
+    async def send_to_user(self, username: str, message: str):
+        ws = self.active_connections.get(username)
+        if ws:
+            try:
+                await ws.send_text(message)
+            except Exception:
+                self.active_connections.pop(username, None)
 
     async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
+        for ws in list(self.active_connections.values()):
+            try:
+                await ws.send_text(message)
+            except Exception:
+                pass
+
+    async def broadcast_online_users(self):
+        users = list(self.active_connections.keys())
+        await self.broadcast(json.dumps({
+            "type": "online_users",
+            "users": users,
+        }))
+
+    def get_online_users(self) -> list:
+        return list(self.active_connections.keys())
 
 manager = ConnectionManager()
 
@@ -67,46 +103,73 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
         await websocket.close(code=4001)
         return
 
-    await manager.connect(websocket)
+    await manager.connect(websocket, username)
     try:
-        # Notify everyone that a new user joined
-        await manager.broadcast(json.dumps({
-            "type": "system",
-            "content": f"{username} has joined the chat",
-        }))
         while True:
             data = await websocket.receive_text()
+            try:
+                msg_data = json.loads(data)
+                receiver = msg_data.get("receiver")
+                content = msg_data.get("content", "")
+            except json.JSONDecodeError:
+                continue
+
+            msg_type = msg_data.get("type", "message")
+
+            if msg_type == "typing" and receiver:
+                await manager.send_to_user(receiver, json.dumps({
+                    "type": "typing",
+                    "sender": username,
+                }))
+                continue
+
+            if not receiver or not content:
+                continue
+
             # Save to database
             db = next(get_db())
-            db_message = MessageModel(sender=username, content=data)
-            db.add(db_message)
-            db.commit()
-            db.refresh(db_message)
-            # Broadcast as JSON
-            await manager.broadcast(json.dumps({
+            try:
+                db_message = MessageModel(sender=username, receiver=receiver, content=content)
+                db.add(db_message)
+                db.commit()
+                db.refresh(db_message)
+            finally:
+                db.close()
+
+            message_json = json.dumps({
                 "type": "message",
                 "id": db_message.id,
                 "sender": username,
-                "content": data,
+                "receiver": receiver,
+                "content": content,
                 "timestamp": db_message.timestamp.isoformat(),
-            }))
+            })
+
+            # Send to both sender and receiver
+            await manager.send_to_user(username, message_json)
+            if receiver != username:
+                await manager.send_to_user(receiver, message_json)
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        await manager.broadcast(json.dumps({
-            "type": "system",
-            "content": f"{username} has left the chat",
-        }))
+        await manager.disconnect(username, websocket)
 
 # --- Message Endpoints ---
 
-@app.get("/api/messages", response_model=List[MessageResponse])
-def get_messages(
+@app.get("/api/messages/{chat_partner}", response_model=List[MessageResponse])
+def get_dm_messages(
+    chat_partner: str,
     limit: int = Query(50, ge=1, le=200),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    username = current_user["username"]
     messages = (
         db.query(MessageModel)
+        .filter(
+            or_(
+                and_(MessageModel.sender == username, MessageModel.receiver == chat_partner),
+                and_(MessageModel.sender == chat_partner, MessageModel.receiver == username),
+            )
+        )
         .order_by(MessageModel.timestamp.asc())
         .limit(limit)
         .all()
