@@ -22,6 +22,7 @@ class UserResponse(BaseModel):
 class MessageResponse(BaseModel):
     id: int
     sender: str
+    receiver: Optional[str] = None
     content: str
     timestamp: datetime
 
