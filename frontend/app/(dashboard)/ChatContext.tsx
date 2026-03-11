@@ -11,7 +11,13 @@ import {
 } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/api";
+
+function getWsUrl() {
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
+  if (typeof window === "undefined") return "";
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${window.location.host}/api`;
+}
 
 export interface ChatMessage {
   id: number;
@@ -66,7 +72,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!token || !username) return;
 
-    const ws = new WebSocket(`${WS_URL}/ws?token=${encodeURIComponent(token)}`);
+    const wsUrl = getWsUrl();
+    const ws = new WebSocket(`${wsUrl}/ws?token=${encodeURIComponent(token)}`);
     wsRef.current = ws;
 
     ws.onopen = () => setIsConnected(true);
