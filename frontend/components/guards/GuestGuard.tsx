@@ -9,18 +9,18 @@ export default function GuestGuard({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [isGuest] = useState(
-    () =>
-      typeof window !== "undefined" && !localStorage.getItem("access_token"),
-  );
+  const [isGuest, setIsGuest] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!isGuest) {
+    const token = localStorage.getItem("access_token");
+    if (token) {
       router.replace("/");
+    } else {
+      setIsGuest(true);
     }
-  }, [isGuest, router]);
+  }, [router]);
 
-  if (!isGuest) return null;
+  if (isGuest === null) return null;
 
   return <>{children}</>;
 }

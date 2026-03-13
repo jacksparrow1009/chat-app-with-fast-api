@@ -14,6 +14,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 function getWsUrl() {
   if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
+
+  if (/^https?:\/\//.test(API_URL)) {
+    return API_URL.replace(/^http/, "ws").replace(/\/$/, "");
+  }
+
   if (typeof window === "undefined") return "";
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${proto}//${window.location.host}/api`;
@@ -64,10 +69,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     new Map(),
   );
   const wsRef = useRef<WebSocket | null>(null);
-  const username =
-    typeof window !== "undefined" ? localStorage.getItem("username") : null;
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  const [credentials, setCredentials] = useState<{
+    username: string;
+    token: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    const username = localStorage.getItem("username");
+    if (token && username) setCredentials({ token, username });
+  }, []);
+
+  const username = credentials?.username ?? null;
+  const token = credentials?.token ?? null;
 
   useEffect(() => {
     if (!token || !username) return;
@@ -128,12 +142,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const loadHistory = useCallback(
     async (chatPartner: string) => {
-      if (!token || !username) return;
+      if (!credentials?.token || !credentials?.username) return;
       setIsLoadingHistory(true);
       try {
         const res = await fetch(
           `${API_URL}/messages/${encodeURIComponent(chatPartner)}?limit=100`,
-          { headers: { Authorization: `Bearer ${token}` } },
+          { headers: { Authorization: `Bearer ${credentials!.token}` } },
         );
         if (res.ok) {
           const data = await res.json();
@@ -150,7 +164,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               sender: msg.sender,
               receiver: msg.receiver ?? "",
               timestamp: msg.timestamp,
-              isMe: msg.sender === username,
+              isMe: msg.sender === credentials!.username,
             }),
           );
           setMessages((prev) => {
