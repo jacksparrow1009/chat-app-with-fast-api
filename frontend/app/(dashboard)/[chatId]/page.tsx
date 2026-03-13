@@ -29,8 +29,10 @@ export default function DmChatPage() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPartnerTyping = typingUsers.has(chatPartner);
 
-  const username =
-    typeof window !== "undefined" ? localStorage.getItem("username") : null;
+  const [username, setUsername] = useState<string | null>(null);
+  useEffect(() => {
+    setUsername(localStorage.getItem("username"));
+  }, []);
   const isPartnerOnline = onlineUsers.includes(chatPartner);
 
   // Load message history when chat partner changes

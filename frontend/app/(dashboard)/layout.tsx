@@ -24,12 +24,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { onlineUsers } = useChatContext();
   const [users, setUsers] = useState<UserInfo[]>([]);
-  const [currentUsername] = useState<string>(
-    () =>
-      (typeof window !== "undefined"
-        ? localStorage.getItem("username")
-        : null) || "",
-  );
+  const [currentUsername, setCurrentUsername] = useState("");
+  useEffect(() => {
+    setCurrentUsername(localStorage.getItem("username") || "");
+  }, []);
 
   useEffect(() => {
     const fetchUsers = async () => {
