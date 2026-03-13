@@ -5,28 +5,26 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from core.config import settings
 
 import logging
 # This suppresses the legacy bug check that causes the crash
 logging.getLogger("passlib").setLevel(logging.ERROR)
 
-# Configuration for JWT
-SECRET_KEY = "hello" # Change this in production!
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 1 day
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+    )
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 def verify_token(token: str) -> dict:
     """Decode and verify a JWT token. Returns the payload or raises."""
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         return payload
     except JWTError:
         raise HTTPException(
@@ -47,7 +45,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         )
     return {"username": username, "email": email}
 
-# 1. Force passlib to use the 'bcrypt' backend and ignore the wrap bug check
 pwd_context = CryptContext(
     schemes=["bcrypt"], 
     deprecated="auto",
