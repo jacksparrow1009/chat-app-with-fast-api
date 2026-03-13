@@ -13,15 +13,16 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 function getWsUrl() {
+  // NEXT_PUBLIC_WS_URL is the full endpoint URL (e.g. ws://host/api/ws)
   if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
 
   if (/^https?:\/\//.test(API_URL)) {
-    return API_URL.replace(/^http/, "ws").replace(/\/$/, "");
+    return API_URL.replace(/^http/, "ws").replace(/\/$/, "") + "/ws";
   }
 
   if (typeof window === "undefined") return "";
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/api`;
+  return `${proto}//${window.location.host}/api/ws`;
 }
 
 export interface ChatMessage {
@@ -87,7 +88,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (!token || !username) return;
 
     const wsUrl = getWsUrl();
-    const ws = new WebSocket(`${wsUrl}/ws?token=${encodeURIComponent(token)}`);
+    const ws = new WebSocket(`${wsUrl}?token=${encodeURIComponent(token)}`);
     wsRef.current = ws;
 
     ws.onopen = () => setIsConnected(true);
